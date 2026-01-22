@@ -1,0 +1,73 @@
+/**
+ * Runtime Middleware - Track task execution time
+ */
+
+import { performance } from 'node:perf_hooks';
+import type { Task } from '../task.js';
+import type { Result } from '../result.js';
+
+export interface RuntimeOptions {
+  /** Condition to apply runtime tracking */
+  if?: string | ((task: Task) => boolean);
+  /** Condition to skip runtime tracking */
+  unless?: string | ((task: Task) => boolean);
+}
+
+/**
+ * Middleware that tracks task execution time in milliseconds using a monotonic clock.
+ *
+ * @example
+ * ```typescript
+ * class ProcessExport extends Task {
+ *   static middlewares = [
+ *     RuntimeMiddleware,
+ *   ];
+ * }
+ * ```
+ */
+export async function RuntimeMiddleware<T extends Record<string, unknown>>(
+  task: Task<T>,
+  options: RuntimeOptions,
+  next: () => Promise<Result<T>>
+): Promise<Result<T>> {
+  // Check conditions
+  if (options.if !== undefined) {
+    const shouldApply = evaluateCondition(task, options.if);
+    if (!shouldApply) {
+      return next();
+    }
+  }
+
+  if (options.unless !== undefined) {
+    const shouldSkip = evaluateCondition(task, options.unless);
+    if (shouldSkip) {
+      return next();
+    }
+  }
+
+  // Measure execution time
+  const startTime = performance.now();
+  const result = await next();
+  const endTime = performance.now();
+
+  // Add runtime to metadata (in milliseconds, rounded)
+  const metadata = result.metadata as Record<string, unknown>;
+  metadata.runtime = Math.round(endTime - startTime);
+
+  return result;
+}
+
+function evaluateCondition<T extends Record<string, unknown>>(
+  task: Task<T>,
+  condition: string | ((task: Task<T>) => boolean)
+): boolean {
+  if (typeof condition === 'function') {
+    return condition(task);
+  }
+  const taskAny = task as unknown as Record<string, unknown>;
+  const method = taskAny[condition];
+  if (typeof method === 'function') {
+    return !!(method as () => boolean).call(task);
+  }
+  return !!method;
+}
