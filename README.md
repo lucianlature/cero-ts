@@ -11,7 +11,7 @@ A TypeScript implementation inspired by [CMDx](https://github.com/drexed/cmdx), 
 [![codecov](https://codecov.io/gh/lucianlature/cero-ts/graph/badge.svg)](https://codecov.io/gh/lucianlature/cero-ts)
 [![License: LGPL-3.0](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 [![Node.js](https://img.shields.io/badge/Node.js-24+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-success)](package.json)
 
 ---
