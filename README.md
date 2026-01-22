@@ -7,6 +7,8 @@
 A TypeScript implementation inspired by [CMDx](https://github.com/drexed/cmdx), embracing the **CERO pattern**<br/>
 **(Compose → Execute → React → Observe)** for clean, composable business logic.
 
+[![CI](https://github.com/lucianlature/cero-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/lucianlature/cero-ts/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/lucianlature/cero-ts/graph/badge.svg)](https://codecov.io/gh/lucianlature/cero-ts)
 [![License: LGPL-3.0](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 [![Node.js](https://img.shields.io/badge/Node.js-24+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
