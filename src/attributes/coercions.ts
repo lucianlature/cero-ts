@@ -43,7 +43,7 @@ export const coercions: Record<string, CoercionFunction> = {
       // Handle hex
       if (str.startsWith('0x') || str.startsWith('0X')) {
         const parsed = parseInt(str, 16);
-        if (isNaN(parsed)) {
+        if (Number.isNaN(parsed)) {
           throw new CoercionError('value', value, 'integer');
         }
         return parsed;
@@ -52,7 +52,7 @@ export const coercions: Record<string, CoercionFunction> = {
       // Handle octal
       if (str.startsWith('0o') || str.startsWith('0O')) {
         const parsed = parseInt(str.slice(2), 8);
-        if (isNaN(parsed)) {
+        if (Number.isNaN(parsed)) {
           throw new CoercionError('value', value, 'integer');
         }
         return parsed;
@@ -61,7 +61,7 @@ export const coercions: Record<string, CoercionFunction> = {
       // Handle binary
       if (str.startsWith('0b') || str.startsWith('0B')) {
         const parsed = parseInt(str.slice(2), 2);
-        if (isNaN(parsed)) {
+        if (Number.isNaN(parsed)) {
           throw new CoercionError('value', value, 'integer');
         }
         return parsed;
@@ -69,7 +69,7 @@ export const coercions: Record<string, CoercionFunction> = {
 
       // Standard integer
       const parsed = parseInt(str, 10);
-      if (isNaN(parsed)) {
+      if (Number.isNaN(parsed)) {
         throw new CoercionError('value', value, 'integer');
       }
       return parsed;
@@ -97,7 +97,7 @@ export const coercions: Record<string, CoercionFunction> = {
 
     if (typeof value === 'string') {
       const parsed = parseFloat(value.trim());
-      if (isNaN(parsed)) {
+      if (Number.isNaN(parsed)) {
         throw new CoercionError('value', value, 'float');
       }
       return parsed;
@@ -143,7 +143,7 @@ export const coercions: Record<string, CoercionFunction> = {
     if (value === null || value === undefined) return value;
 
     if (value instanceof Date) {
-      if (isNaN(value.getTime())) {
+      if (Number.isNaN(value.getTime())) {
         throw new CoercionError('value', value, 'date', 'Invalid date');
       }
       return value;
@@ -159,7 +159,7 @@ export const coercions: Record<string, CoercionFunction> = {
         date = new Date(value);
       }
 
-      if (isNaN(date.getTime())) {
+      if (Number.isNaN(date.getTime())) {
         throw new CoercionError('value', value, 'date');
       }
 
@@ -169,7 +169,7 @@ export const coercions: Record<string, CoercionFunction> = {
 
     if (typeof value === 'number') {
       const date = new Date(value);
-      if (isNaN(date.getTime())) {
+      if (Number.isNaN(date.getTime())) {
         throw new CoercionError('value', value, 'date');
       }
       return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -185,7 +185,7 @@ export const coercions: Record<string, CoercionFunction> = {
     if (value === null || value === undefined) return value;
 
     if (value instanceof Date) {
-      if (isNaN(value.getTime())) {
+      if (Number.isNaN(value.getTime())) {
         throw new CoercionError('value', value, 'datetime', 'Invalid datetime');
       }
       return value;
@@ -201,7 +201,7 @@ export const coercions: Record<string, CoercionFunction> = {
         date = new Date(value);
       }
 
-      if (isNaN(date.getTime())) {
+      if (Number.isNaN(date.getTime())) {
         throw new CoercionError('value', value, 'datetime');
       }
 
@@ -210,7 +210,7 @@ export const coercions: Record<string, CoercionFunction> = {
 
     if (typeof value === 'number') {
       const date = new Date(value);
-      if (isNaN(date.getTime())) {
+      if (Number.isNaN(date.getTime())) {
         throw new CoercionError('value', value, 'datetime');
       }
       return date;
@@ -415,7 +415,7 @@ export const coercions: Record<string, CoercionFunction> = {
 
       // Try as float
       const float = parseFloat(value);
-      if (!isNaN(float)) {
+      if (!Number.isNaN(float)) {
         return coercions.rational!(float);
       }
 

@@ -70,9 +70,11 @@ function resolveCorrelationId<T extends Record<string, unknown>>(
   if (value === undefined) {
     return generateTimeOrderedUUID();
   }
+
   if (typeof value === 'function') {
     return value(task);
   }
+  
   if (typeof value === 'string') {
     const taskAny = task as unknown as Record<string, unknown>;
     const method = taskAny[value];
@@ -91,10 +93,13 @@ function evaluateCondition<T extends Record<string, unknown>>(
   if (typeof condition === 'function') {
     return condition(task);
   }
+
   const taskAny = task as unknown as Record<string, unknown>;
   const method = taskAny[condition];
+  
   if (typeof method === 'function') {
     return !!(method as () => boolean).call(task);
   }
+  
   return !!method;
 }
