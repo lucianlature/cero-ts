@@ -106,8 +106,29 @@ curl -X POST http://localhost:3000/api/orders/order_xxx/cancel \
   -H "Content-Type: application/json" \
   -d '{"reason": "Changed my mind"}'
 
-# Process an order (runs the workflow)
+# Process an order (runs the pipeline workflow)
 curl -X POST http://localhost:3000/api/orders/order_xxx/process
+
+# Start interactive fulfillment workflow
+curl -X POST http://localhost:3000/api/orders/order_xxx/fulfill
+
+# Query fulfillment status
+curl http://localhost:3000/api/orders/order_xxx/fulfillment
+
+# Signal: order shipped
+curl -X POST http://localhost:3000/api/orders/order_xxx/ship \
+  -H "Content-Type: application/json" \
+  -d '{"trackingNumber": "1Z999AA10123456784", "carrier": "UPS"}'
+
+# Signal: order delivered
+curl -X POST http://localhost:3000/api/orders/order_xxx/deliver \
+  -H "Content-Type: application/json" \
+  -d '{"signature": "J. Smith"}'
+
+# Signal: cancel fulfillment
+curl -X POST http://localhost:3000/api/orders/order_xxx/cancel-fulfillment \
+  -H "Content-Type: application/json" \
+  -d '{"reason": "Customer requested cancellation"}'
 ```
 
 ## Testing Different Scenarios
@@ -188,6 +209,51 @@ curl -X POST http://localhost:3000/api/orders \
   }'
 ```
 
+### Interactive Fulfillment Workflow (Temporal-inspired)
+
+The example includes an interactive `OrderFulfillmentWorkflow` that uses **Signals**, **Queries**, and **Conditions** — patterns inspired by [Temporal](https://temporal.io).
+
+Unlike the pipeline-based `ProcessOrderWorkflow` that runs to completion in one shot, the fulfillment workflow **stays alive** and waits for real-world events from warehouse and delivery systems.
+
+```bash
+# 1. Create and pay for an order first (use the ID from the response)
+ORDER_ID=order_xxx
+
+# 2. Start the fulfillment workflow (returns immediately with 202)
+curl -X POST http://localhost:3000/api/orders/$ORDER_ID/fulfill
+
+# 3. Query fulfillment status at any time (Query pattern)
+curl http://localhost:3000/api/orders/$ORDER_ID/fulfillment
+# → { "status": "awaiting_shipment", "canCancel": true }
+
+# 4. Warehouse ships the order (Signal pattern)
+curl -X POST http://localhost:3000/api/orders/$ORDER_ID/ship \
+  -H "Content-Type: application/json" \
+  -d '{ "trackingNumber": "1Z999AA10123456784", "carrier": "UPS" }'
+
+# 5. Check status again — now includes tracking info
+curl http://localhost:3000/api/orders/$ORDER_ID/fulfillment
+# → { "status": "awaiting_delivery", "trackingNumber": "1Z999AA1...", "carrier": "UPS" }
+
+# 6. Driver delivers the order (Signal pattern)
+curl -X POST http://localhost:3000/api/orders/$ORDER_ID/deliver \
+  -H "Content-Type: application/json" \
+  -d '{ "signature": "J. Smith" }'
+# → Workflow completes successfully
+
+# Cancel at any point before delivery (Signal + Query guard)
+curl -X POST http://localhost:3000/api/orders/$ORDER_ID/cancel-fulfillment \
+  -H "Content-Type: application/json" \
+  -d '{ "reason": "Customer requested cancellation" }'
+```
+
+**Workflow phases:**
+
+1. **Pipeline** (`runTasks`) — Validate → Reserve inventory → Notify warehouse + Send confirmation (parallel)
+2. **Await Shipment** (`condition` + `signal`) — Blocks until warehouse signals or 7-day timeout
+3. **Await Delivery** (`condition` + `signal`) — Blocks until driver signals or 14-day timeout
+4. **Cancellation** — Can be triggered via signal at any phase before delivery; triggers refund
+
 ## Key Concepts Demonstrated
 
 ### cero-ts Tasks as Use Cases
@@ -232,6 +298,49 @@ export class ProcessOrderWorkflow extends Workflow<OrderContext> {
     orderId: required(),
   };
 }
+```
+
+### Interactive Workflows (Signals, Queries, Conditions)
+
+Model long-running processes that wait for external events:
+
+```typescript
+import { Workflow, defineSignal, defineQuery } from 'cero-ts';
+
+const shippedSignal = defineSignal<[{ trackingNumber: string }]>('order.shipped');
+const deliveredSignal = defineSignal('order.delivered');
+const statusQuery = defineQuery<string>('fulfillment.status');
+
+class OrderFulfillmentWorkflow extends Workflow<FulfillmentContext> {
+  static override tasks = [ValidateOrderTask, ReserveInventoryTask];
+
+  override async work() {
+    let status = 'processing';
+
+    // Register handlers for external events
+    this.setHandler(shippedSignal, (input) => { status = 'shipped'; });
+    this.setHandler(deliveredSignal, () => { status = 'delivered'; });
+    this.setHandler(statusQuery, () => status);
+
+    // Run the pipeline tasks first
+    await this.runTasks();
+
+    // Wait for warehouse to ship (with 7-day timeout)
+    const shipped = await this.condition(() => status === 'shipped', '7d');
+    if (!shipped) this.fail('Shipment timeout');
+
+    // Wait for driver to deliver (with 14-day timeout)
+    const delivered = await this.condition(() => status === 'delivered', '14d');
+    if (!delivered) this.fail('Delivery timeout');
+  }
+}
+
+// Start workflow — returns a handle for interaction
+const handle = OrderFulfillmentWorkflow.start({ orderId: 'ord_123' });
+handle.query(statusQuery);                          // → 'processing'
+handle.signal(shippedSignal, { trackingNumber: '1Z...' });
+handle.signal(deliveredSignal);
+const result = await handle.result();               // → success
 ```
 
 ### Dependency Inversion

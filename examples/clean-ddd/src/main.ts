@@ -50,6 +50,13 @@ async function bootstrap(): Promise<void> {
           get: 'GET /api/orders/:id',
           cancel: 'POST /api/orders/:id/cancel',
           process: 'POST /api/orders/:id/process',
+          fulfillment: {
+            start: 'POST /api/orders/:id/fulfill',
+            status: 'GET /api/orders/:id/fulfillment',
+            ship: 'POST /api/orders/:id/ship',
+            deliver: 'POST /api/orders/:id/deliver',
+            cancelFulfillment: 'POST /api/orders/:id/cancel-fulfillment',
+          },
         },
       },
       sampleRequest: {
@@ -104,6 +111,13 @@ async function bootstrap(): Promise<void> {
 ║   • GET  /api/orders/:id        - Get order                ║
 ║   • POST /api/orders/:id/cancel - Cancel order             ║
 ║   • POST /api/orders/:id/process - Process workflow        ║
+║                                                            ║
+║   Interactive Fulfillment (Temporal-inspired):             ║
+║   • POST /api/orders/:id/fulfill - Start fulfillment       ║
+║   • GET  /api/orders/:id/fulfillment - Query status        ║
+║   • POST /api/orders/:id/ship    - Signal: shipped         ║
+║   • POST /api/orders/:id/deliver - Signal: delivered       ║
+║   • POST /api/orders/:id/cancel-fulfillment - Cancel       ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
     `);

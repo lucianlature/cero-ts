@@ -119,6 +119,25 @@ export {
   type WorkflowTaskDefinition,
 } from './workflow/index.js';
 
+// Workflow Messages (Signals & Queries)
+export {
+  defineSignal,
+  defineQuery,
+  isSignalDefinition,
+  isQueryDefinition,
+  type SignalDefinition,
+  type QueryDefinition,
+  type SignalHandler,
+  type QueryHandler,
+} from './workflow/index.js';
+
+// Workflow Condition & Handle
+export {
+  WorkflowHandle,
+  parseDuration,
+  type Duration,
+} from './workflow/index.js';
+
 // Attributes
 export {
   coercions,
