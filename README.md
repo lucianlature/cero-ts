@@ -54,6 +54,7 @@ Building business logic that's **easy to understand**, **test**, and **maintain*
 | **Type-Safe Attributes** | Declare inputs with automatic coercion and validation |
 | **Built-in Observability** | Structured logging with chain IDs and runtime metrics |
 | **Composable Workflows** | Chain tasks into sequential or parallel pipelines |
+| **Interactive Workflows** | Signals, Queries, and Conditions for long-running processes |
 | **Predictable Results** | Every execution returns success, failure, or skipped |
 | **Middleware System** | Wrap execution with cross-cutting concerns |
 | **Retry Support** | Automatic retries with exponential backoff and jitter |
@@ -177,6 +178,66 @@ class OnboardingWorkflow extends Workflow {
 
 const result = await OnboardingWorkflow.execute({ userId: 123 });
 ```
+
+### Interactive Workflows (Signals, Queries, Conditions)
+
+Build long-running workflows that wait for external events — inspired by [Temporal](https://temporal.io):
+
+```typescript
+import { Workflow, defineSignal, defineQuery } from 'cero-ts';
+
+// Define typed messages
+const approvalSignal = defineSignal<[{ approved: boolean; approver: string }]>('approval');
+const statusQuery = defineQuery<string>('status');
+
+class ApprovalWorkflow extends Workflow {
+  override async work() {
+    let status = 'pending';
+    let decision: { approved: boolean; approver: string } | undefined;
+
+    // Register handlers for external events
+    this.setHandler(approvalSignal, (input) => {
+      decision = input;
+      status = input.approved ? 'approved' : 'rejected';
+    });
+    this.setHandler(statusQuery, () => status);
+
+    // Run prerequisite tasks
+    await this.runTasks();
+    status = 'awaiting_approval';
+
+    // Block until approved or 24h timeout
+    const received = await this.condition(() => decision !== undefined, '24h');
+    if (!received) this.fail('Approval timed out');
+    if (!decision!.approved) this.skip('Rejected', { approver: decision!.approver });
+  }
+}
+```
+
+Interact with the running workflow via a handle:
+
+```typescript
+const handle = ApprovalWorkflow.start({ requestId: 'REQ-001' });
+
+handle.query(statusQuery);                                          // → 'awaiting_approval'
+handle.signal(approvalSignal, { approved: true, approver: 'alice' });
+const result = await handle.result();                               // → success
+```
+
+**Key primitives:**
+
+| Primitive | Description |
+| ----------- | ------------- |
+| `defineSignal<Args>(name)` | Define a typed signal for sending data into a workflow |
+| `defineQuery<Result>(name)` | Define a typed query for reading workflow state |
+| `this.setHandler(signal, fn)` | Register a signal handler (may mutate state) |
+| `this.setHandler(query, fn)` | Register a query handler (must be pure) |
+| `this.condition(predicate, timeout?)` | Block until predicate is true or timeout expires |
+| `this.runTasks()` | Run the static `tasks` pipeline within an interactive workflow |
+| `Workflow.start(args)` | Start workflow, return `WorkflowHandle` |
+| `handle.signal(signal, ...args)` | Send a signal to the running workflow |
+| `handle.query(query, ...args)` | Read current workflow state |
+| `handle.result()` | Await the final `Result` |
 
 ### Middleware
 
@@ -356,6 +417,44 @@ configure((config) => {
 | `skip(reason?, metadata?)` | Skip execution |
 | `fail(reason?, metadata?)` | Fail execution |
 | `throw(result, metadata?)` | Propagate sub-task failure |
+
+</details>
+
+### Workflow
+
+<details>
+<summary><b>Static Methods</b></summary>
+
+| Method | Description |
+| -------- | ------------- |
+| `execute(args?, options?)` | Run pipeline to completion, return Result |
+| `start(args?, options?)` | Start interactive workflow, return WorkflowHandle |
+
+</details>
+
+<details>
+<summary><b>Instance Methods (inside work())</b></summary>
+
+| Method | Description |
+| -------- | ------------- |
+| `setHandler(signal, fn)` | Register a signal handler |
+| `setHandler(query, fn)` | Register a query handler |
+| `condition(predicate, timeout?)` | Block until predicate or timeout |
+| `runTasks()` | Execute the static `tasks` pipeline |
+
+</details>
+
+### WorkflowHandle
+
+<details>
+<summary><b>Methods</b></summary>
+
+| Method | Description |
+| -------- | ------------- |
+| `signal(signal, ...args)` | Send a signal to the workflow |
+| `query(query, ...args)` | Read current workflow state |
+| `result()` | Await the final Result |
+| `completed` | Whether the workflow has finished |
 
 </details>
 
