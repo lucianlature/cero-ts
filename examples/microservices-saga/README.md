@@ -46,45 +46,62 @@ This example implements the architecture that best balances long-running steps, 
 
 ### Saga Flow
 
-```text
-Client                Gateway              Inventory         Payment           Shipping
-  │                      │                     │                │                 │
-  │  POST /api/orders    │                     │                │                 │
-  │─────────────────────►│                     │                │                 │
-  │                      │ ValidateOrderTask   │                │                 │
-  │                      │ (attributes,        │                │                 │
-  │                      │  coercions,         │                │                 │
-  │                      │  validations)       │                │                 │
-  │  202 { orderId }     │                     │                │                 │
-  │◄─────────────────────│                     │                │                 │
-  │                      │                     │                │                 │
-  │                      │ CMD: reserve ──────►│                │                 │
-  │                      │ condition(30s)      │                │                 │
-  │                      │                     │ CheckStockTask │                 │
-  │                      │                     │ ReserveStockTask                 │
-  │                      │ SIG: reserved ◄─────│                │                 │
-  │                      │                     │                │                 │
-  │                      │ CMD: capture ───────────────────────►│                 │
-  │                      │ condition(30s)      │                │                 │
-  │                      │                     │                │ CapturePayment  │
-  │                      │                     │                │ (retries,       │
-  │                      │                     │                │  timeout,       │
-  │                      │                     │                │  rollback)      │
-  │                      │ SIG: captured ◄─────────────────────│                  │
-  │                      │                     │                │                 │
-  │                      │ CMD: create ────────────────────────────────────────►  │
-  │                      │ condition(60s)      │                │                 │
-  │                      │                     │                │  ValidateAddress│
-  │                      │                     │                │  CreateLabel    │
-  │                      │                     │                │  SchedulePickup │
-  │                      │ SIG: created ◄──────────────────────────────────────   │
-  │                      │                     │                │                 │
-  │                      │ ✅ Saga complete    │                │                 │
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant G as Gateway
+    participant I as Inventory
+    participant P as Payment
+    participant S as Shipping
+
+    C->>+G: POST /api/orders
+    Note over G: ValidateOrderTask<br/>(attributes, coercions, validations)
+    G-->>-C: 202 { orderId }
+
+    G->>+I: CMD: inventory.reserve
+    Note right of G: condition(30s)
+    Note over I: CheckStockTask<br/>ReserveStockTask
+    I-->>-G: SIG: inventory.reserved
+
+    G->>+P: CMD: payment.capture
+    Note right of G: condition(30s)
+    Note over P: CapturePaymentTask<br/>(retries, timeout, rollback)
+    P-->>-G: SIG: payment.captured
+
+    G->>+S: CMD: shipping.create
+    Note right of G: condition(60s)
+    Note over S: ValidateAddress<br/>CreateLabel<br/>SchedulePickup
+    S-->>-G: SIG: shipment.created
+
+    Note over G: ✅ Saga complete
 ```
 
 ### Compensation on Failure
 
 If any step fails or times out, the saga automatically runs compensating transactions:
+
+```mermaid
+sequenceDiagram
+    participant G as Gateway
+    participant I as Inventory
+    participant P as Payment
+
+    Note over G: Payment declined after<br/>inventory was reserved
+
+    G->>I: CMD: inventory.reserve
+    I-->>G: SIG: inventory.reserved ✓
+
+    G->>P: CMD: payment.capture
+    P-->>G: SIG: payment.failed ✗
+
+    rect rgba(245, 158, 11, 0.1)
+        Note over G: Compensation phase
+        G->>I: CMD: inventory.release
+        Note over I: Release reserved stock
+    end
+
+    Note over G: ❌ Saga failed
+```
 
 | Failure Point | Compensation |
 | -------- | -------- |
