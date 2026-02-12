@@ -5,6 +5,7 @@ export default defineConfig({
     'src/index.ts',
     'src/middleware/index.ts',
     'src/logging/index.ts',
+    'src/durable/index.ts',
   ],
   format: ['esm'],
   dts: true,

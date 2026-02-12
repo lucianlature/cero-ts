@@ -1,0 +1,18 @@
+{
+  "name": "@saga/payment",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@saga/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node --import tsx/esm src/main.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}

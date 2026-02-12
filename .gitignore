@@ -29,6 +29,9 @@ coverage/
 .env.local
 .env.*.local
 
+# SQLite data (Docker bind mounts)
+.data/
+
 # Misc
 *.tgz
 .npmrc

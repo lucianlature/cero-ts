@@ -50,11 +50,23 @@ export async function RuntimeMiddleware<T extends Record<string, unknown>>(
   const result = await next();
   const endTime = performance.now();
 
-  // Add runtime to metadata (in milliseconds, rounded)
-  const metadata = result.metadata as Record<string, unknown>;
-  metadata.runtime = Math.round(endTime - startTime);
-
-  return result;
+  // Result and its metadata are frozen (immutable). Create a new Result
+  // with the runtime value merged into metadata.
+  const runtime = Math.round(endTime - startTime);
+  const { Result: ResultClass } = await import('../result.js');
+  return new ResultClass<T>({
+    task: result.task,
+    context: result.context,
+    chain: result.chain,
+    index: result.index,
+    state: result.state,
+    status: result.status,
+    reason: result.reason,
+    cause: result.cause,
+    metadata: { ...result.metadata, runtime },
+    retries: result.retries,
+    rolledBack: result.rolledBack,
+  });
 }
 
 function evaluateCondition<T extends Record<string, unknown>>(

@@ -15,6 +15,10 @@
     "./logging": {
       "types": "./dist/logging/index.d.ts",
       "import": "./dist/logging/index.js"
+    },
+    "./durable": {
+      "types": "./dist/durable/index.d.ts",
+      "import": "./dist/durable/index.js"
     }
   },
   "main": "./dist/index.js",
@@ -49,6 +53,7 @@
   "devDependencies": {
     "@types/node": "^25.0.10",
     "@vitest/coverage-v8": "^4.0.17",
+    "playwright": "^1.58.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"

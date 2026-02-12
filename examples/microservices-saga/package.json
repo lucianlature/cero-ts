@@ -1,0 +1,29 @@
+{
+  "name": "microservices-saga",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Microservices Saga Orchestration Example with cero-ts",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "gateway",
+    "payment",
+    "inventory",
+    "shipping",
+    "dashboard"
+  ],
+  "dependencies": {
+    "cero-ts": "file:../.."
+  },
+  "scripts": {
+    "dev": "docker compose up --build",
+    "dev:gateway": "npm run dev --workspace=gateway",
+    "dev:payment": "npm run dev --workspace=payment",
+    "dev:inventory": "npm run dev --workspace=inventory",
+    "dev:shipping": "npm run dev --workspace=shipping",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

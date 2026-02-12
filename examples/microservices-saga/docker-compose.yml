@@ -1,0 +1,96 @@
+# -------------------------------------------------------------------
+# Microservices Saga — Docker Compose
+# -------------------------------------------------------------------
+# Usage:
+#   cd examples/microservices-saga
+#   docker compose up --build
+#
+# Services:
+#   - RabbitMQ:  amqp://localhost:5672, Management UI: http://localhost:15672
+#   - Gateway:   http://localhost:3000
+#   - Dashboard: http://localhost:3000/dashboard
+# -------------------------------------------------------------------
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-saga/gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      GATEWAY_PORT: "3000"
+      DATA_DIR: /data
+      SERVICE_NAME: gateway
+    volumes:
+      - ./.data/gateway:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  payment:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-saga/payment/Dockerfile
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      DATA_DIR: /data
+      SERVICE_NAME: payment
+    volumes:
+      - ./.data/payment:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  inventory:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-saga/inventory/Dockerfile
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      DATA_DIR: /data
+      SERVICE_NAME: inventory
+    volumes:
+      - ./.data/inventory:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  shipping:
+    build:
+      context: ../..
+      dockerfile: examples/microservices-saga/shipping/Dockerfile
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      DATA_DIR: /data
+      SERVICE_NAME: shipping
+    volumes:
+      - ./.data/shipping:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  rabbitmq-data:
